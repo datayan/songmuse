@@ -38,6 +38,8 @@ public enum TouchBarLyricsStyle {
         case .nextLine: return 0.45
         case .translation: return 0.75
         case .romanization: return 0.6
+        // 菜单栏专用档,触控栏拿不到;给一个读得清的兜底,别让编译器把这条 switch 当成不完整。
+        case .songInfo: return 0.75
         }
     }
 

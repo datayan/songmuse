@@ -55,7 +55,7 @@ struct TouchBarLyricsRows: View {
             SettingsRow(icon: "text.append", title: L10n.t("副行"),
                         help: L10n.t("在主歌词下方增加一行（两行分别为 14pt / 11pt，「字号」不生效）。译文和读音对应当前句，「下一句」显示即将演唱的歌词；开启副行时，主行不再提前切换到下一句。副行显示不下时，按该句时长横向滚动。")) {
                 Picker("", selection: $settings.touchBarSecondaryLine) {
-                    ForEach(LyricSecondaryLine.allCases, id: \.self) { kind in
+                    ForEach(LyricSecondaryLine.notchTouchbarOptions, id: \.self) { kind in
                         Text(kind.displayName).tag(kind)
                     }
                 }

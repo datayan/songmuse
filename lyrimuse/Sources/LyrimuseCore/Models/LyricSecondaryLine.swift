@@ -27,6 +27,10 @@ public enum LyricSecondaryLine: String, CaseIterable, Sendable {
     case nextLine
     case translation
     case romanization
+    /// 菜单栏专用:主行 = 「歌名 - 艺术家」,副行 = 歌词。没歌词时主行 = 歌名、副行 = 艺术家。
+    /// 只在菜单栏的 picker 里出现,灵动岛 / 触控栏 / 悬浮歌词都没有这一档(那几个面没有"歌名 + 歌词"
+    /// 这种上下分工的排法)。
+    case songInfo
 
     /// 副行那一行到底画不画 —— `.off` 时歌词行回到改动前"一行"的排法,逐像素不变。
     public var showsSecondaryRow: Bool { self != .off }
@@ -41,6 +45,7 @@ public enum LyricSecondaryLine: String, CaseIterable, Sendable {
         case .nextLine: raw = nextLineText
         case .translation: raw = currentLine?.translation
         case .romanization: raw = currentLine?.romanization
+        case .songInfo: raw = nil
         }
         guard let text = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
             return nil
@@ -53,7 +58,10 @@ public enum LyricSecondaryLine: String, CaseIterable, Sendable {
     /// 下一句、副行的「下一句」/ 译文却还对着上一句。灵动岛(`NotchPlayback.displayLine`)和菜单栏
     /// (`MenuBarStatusItem.refresh`)都调这一份。
     public func displayedLine(compactLine: SyncedLyricLine?, currentLine: SyncedLyricLine?) -> SyncedLyricLine? {
-        showsSecondaryRow ? currentLine : compactLine
+        switch self {
+        case .songInfo: return nil
+        default: return showsSecondaryRow ? currentLine : compactLine
+        }
     }
 
     /// 灵动岛喂给 `displayedLine` / `secondaryText` 的当前句:在够格的间奏里(`LyricsGapWindow.isMarked`)
@@ -84,6 +92,13 @@ public enum LyricSecondaryLine: String, CaseIterable, Sendable {
     public static func expandedNextLinePreviewVisible(userToggle: Bool, secondary: LyricSecondaryLine) -> Bool {
         userToggle && !secondary.hidesExpandedNextLinePreview
     }
+
+    /// 灵动岛 / 触控栏 / 悬浮歌词这几个面的「副行」 picker 里只放这四个 —— `.songInfo` 是菜单栏专用档
+    /// (那几个面没有"歌名 + 歌词"这种上下分工的排法), picker 里不给它位置,存量配置里也没人会存它。
+    /// 各 picker 调这一份而不是各自 filter,少一个漂的机会。
+    public static let notchTouchbarOptions: [LyricSecondaryLine] = [
+        .off, .nextLine, .translation, .romanization,
+    ]
 }
 
 /// 灵动岛歌词行的高度规则和里面两行文字的度量。高度用户可调(`AppSettings.notchLyricRowHeight`,上限 `rowHeight`),

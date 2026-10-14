@@ -3585,7 +3585,7 @@ private struct LyricSecondaryLineRow: View {
             help: L10n.t("在主歌词下方增加一行。译文和读音对应当前句，「下一句」显示即将演唱的歌词；选择「下一句」时，展开区不再重复显示下一句预览。放不下两行时歌词行会自动加高")
         ) {
             Picker("", selection: $settings.notchSecondaryLine) {
-                ForEach(LyricSecondaryLine.allCases, id: \.self) { option in
+                ForEach(LyricSecondaryLine.notchTouchbarOptions, id: \.self) { option in
                     Text(option.displayName).tag(option)
                 }
             }

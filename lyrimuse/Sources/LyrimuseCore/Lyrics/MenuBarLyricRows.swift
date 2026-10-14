@@ -75,6 +75,8 @@ public enum MenuBarLyricRows {
         case .nextLine: return 0.55
         case .translation: return 0.75
         case .romanization: return 0.6
+        // 菜单栏专用档:副行是歌词正文,不是预告,按最清楚那一档。
+        case .songInfo: return 0.75
         }
     }
 }

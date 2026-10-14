@@ -358,12 +358,15 @@ func runNotchTests() {
     // 44pt 的行高 —— 一旦塞不下,卡片高度公式就得多一个入参,那正是方案二刻意绕开的整片雷区。
     // 展开区「下一句预览」的顶掉判据只有 Core 这一份,真窗口和设置页替身都调它(contracts 组守着调用点)。
     do {
-        expectEqual(LyricSecondaryLine.allCases.map(\.rawValue), ["off", "nextLine", "translation", "romanization"],
-                    "副行: 四个 rawValue 与声明顺序是存量配置的一部分,别动")
+        expectEqual(LyricSecondaryLine.allCases.map(\.rawValue), ["off", "nextLine", "translation", "romanization", "songInfo"],
+                    "副行: 五个 rawValue 与声明顺序是存量配置的一部分,别动")
         expectEqual(LyricSecondaryLine.off.showsSecondaryRow, false, "副行: 不显示 → 歌词行回到单行排法")
-        expectEqual(LyricSecondaryLine.allCases.filter(\.showsSecondaryRow).count, 3, "副行: 其余三档都画副行")
+        expectEqual(LyricSecondaryLine.allCases.filter(\.showsSecondaryRow).count, 4, "副行: 其余四档都画副行")
         expectEqual(LyricSecondaryLine.allCases.filter(\.hidesExpandedNextLinePreview), [.nextLine],
-                    "副行: 只有「下一句」会顶掉展开区的下一句预览(译文 / 罗马音里没有下一句,不该顶)")
+                    "副行: 只有「下一句」会顶掉展开区的下一句预览(译文 / 罗马音 / 歌名+歌词里没有下一句,不该顶)")
+        expectEqual(LyricSecondaryLine.songInfo.showsSecondaryRow, true, "副行: 歌名+歌词 → 双排(菜单栏专用)")
+        expectEqual(LyricSecondaryLine.songInfo.hidesExpandedNextLinePreview, false,
+                    "副行: 歌名+歌词不是下一句,不顶掉展开区预览")
         for secondary in LyricSecondaryLine.allCases {
             expectEqual(LyricSecondaryLine.expandedNextLinePreviewVisible(userToggle: false, secondary: secondary), false,
                         "副行: 用户关了展开区预览,任何副行选项下都不画(\(secondary.rawValue))")

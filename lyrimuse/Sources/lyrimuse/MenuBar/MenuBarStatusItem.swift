@@ -1210,26 +1210,70 @@ final class MenuBarStatusItem: NSObject {
         // 副行「下一句」却还是同一句。配速(currentLineDwellSeconds)与提前量(恒 0)随之切成 currentLine
         // 那套 —— 跟设置页预览(它一直镜像 currentLine)同一口径。
         let secondaryKind = settings.menuBarSecondaryLine
-        let line = secondaryKind.displayedLine(compactLine: coordinator.menuBarLyrics.compactLine, currentLine: coordinator.menuBarLyrics.line)
+        let isSongInfo = secondaryKind == .songInfo
+        //
         // 前奏/间奏占位给的是三点那个**记号串**,不是音符 —— 记号串在 scrollingLabel 那边
         // 会被换成三颗 CALayer 圆点(跟悬浮歌词/灵动岛/歌词窗口同一条 GapDotsCurve)。
         // 别顺手把下面 MenuBarSlotPolicy 那个「♪ 歌名」兜底也换掉:那说的是"这首歌没词",
         // 跟"有词、只是此刻在间奏"是两件事。
-        let lyricText = line?.plainText
-            ?? (coordinator.menuBarLyrics.compactPlaceholder ? MenuBarMarqueeRenderer.gapDotsToken : "")
-        // 压根没有可显示的行(整首没歌词 / 还在搜)时按开关用歌名占槽,不塌回图标 ——
-        // 判据与三条边界(暂停不占宽 / 广告不显示 / 没歌名不兜底)都在 Core 的 MenuBarSlotPolicy.displayText,
-        // 这里只消费。nil = 照旧收回图标。歌词旁那枚图标开着时兜底文字不带 ♪ 前缀(理由见那个函数)。
-        let display = MenuBarSlotPolicy.displayText(
-            lyricText: lyricText, title: coordinator.displayTitle,
-            isPlaying: coordinator.isPlayingNow, isAdBreak: coordinator.isCurrentTrackAdBreak,
-            showsTitleWhenNoLyrics: settings.menuBarShowsTitleWhenNoLyrics,
-            placeholderGlyph: MenuBarMarqueeRenderer.placeholderGlyph,
-            iconBesideLyrics: settings.menuBarLyricsIconPosition != .off)
-        let text = display?.text ?? ""
-        titleFallbackActive = display?.isFallback ?? false
+        //
+        // `.songInfo` 是菜单栏专用档:主行 = 「歌名 - 艺术家」(有歌词时)/「歌名」(没歌词时),
+        // 副行 = 歌词(有歌词时)/ 艺术家(没歌词时)。它不走「♪ 歌名」兜底那条路 —— 那是给
+        // "整首没歌词"用的单行占位,而 songInfo 本身就要两行。歌名和艺术家是播放器状态、
+        // 不在 `SyncedLyricLine` 里,这里现取;判据「有没有歌词」看的是此刻有没有可唱的行
+        // (当前句或单行展示面那句有非空正文)。广告态 / 没曲目时照旧塌回图标。
+        let line: SyncedLyricLine?
+        let lyricText: String
+        let text: String
+        let secondaryText: String?
+        let titleFallbackActive: Bool
+        let twoRows: Bool
+        let lyricsActive: Bool
+        if isSongInfo {
+            let title = coordinator.displayTitle
+            let artist = coordinator.artist
+            let currentText = coordinator.menuBarLyrics.line?.plainText
+            let compactText = coordinator.menuBarLyrics.compactLine?.plainText
+            let hasLyrics = (currentText?.isEmpty == false) || (compactText?.isEmpty == false)
+            if hasLyrics {
+                // 有歌词:主行「歌名 - 艺术家」,副行歌词(优先当前句,没有就用单行展示面那句)。
+                text = title + " - " + artist
+                let lyric = (currentText?.isEmpty == false) ? currentText : compactText
+                secondaryText = lyric?.trimmingCharacters(in: .whitespacesAndNewlines)
+                lyricText = secondaryText ?? ""
+            } else {
+                // 没歌词:主行「歌名」,副行「艺术家」。
+                text = title
+                secondaryText = artist
+                lyricText = ""
+            }
+            line = nil
+            titleFallbackActive = false
+            twoRows = true
+            lyricsActive = !text.isEmpty && coordinator.isPlayingNow && !coordinator.isCurrentTrackAdBreak
+        } else {
+            line = secondaryKind.displayedLine(compactLine: coordinator.menuBarLyrics.compactLine,
+                                              currentLine: coordinator.menuBarLyrics.line)
+            lyricText = line?.plainText
+                ?? (coordinator.menuBarLyrics.compactPlaceholder ? MenuBarMarqueeRenderer.gapDotsToken : "")
+            // 压根没有可显示的行(整首没歌词 / 还在搜)时按开关用歌名占槽,不塌回图标 ——
+            // 判据与三条边界(暂停不占宽 / 广告不显示 / 没歌名不兜底)都在 Core 的 MenuBarSlotPolicy.displayText,
+            // 这里只消费。nil = 照旧收回图标。歌词旁那枚图标开着时兜底文字不带 ♪ 前缀(理由见那个函数)。
+            let display = MenuBarSlotPolicy.displayText(
+                lyricText: lyricText, title: coordinator.displayTitle,
+                isPlaying: coordinator.isPlayingNow, isAdBreak: coordinator.isCurrentTrackAdBreak,
+                showsTitleWhenNoLyrics: settings.menuBarShowsTitleWhenNoLyrics,
+                placeholderGlyph: MenuBarMarqueeRenderer.placeholderGlyph,
+                iconBesideLyrics: settings.menuBarLyricsIconPosition != .off)
+            text = display?.text ?? ""
+            titleFallbackActive = display?.isFallback ?? false
+            twoRows = secondaryKind.showsSecondaryRow && !titleFallbackActive
+            secondaryText = twoRows
+                ? secondaryKind.secondaryText(currentLine: line, nextLineText: coordinator.menuBarLyrics.nextText)
+                : nil
+            lyricsActive = display != nil
+        }
         // 「♪ 歌名」兜底不是歌词句,没有副行可言,照旧按单行(13pt)画。
-        let twoRows = secondaryKind.showsSecondaryRow && !titleFallbackActive
         // 兜底文字不是歌词句,没有"这一句会显示多久"可言:配速走固定速度那条既有退路。
         let dwell: Double? = titleFallbackActive ? nil
             : (twoRows ? coordinator.menuBarLyrics.lineDwellSeconds : coordinator.menuBarLyrics.compactDwellSeconds)
@@ -1238,10 +1282,8 @@ final class MenuBarStatusItem: NSObject {
         let leadIn = twoRows ? 0 : coordinator.menuBarLyrics.compactLeadInSeconds
         rowState = RowState(
             kind: twoRows ? secondaryKind : .off,
-            secondaryText: twoRows
-                ? secondaryKind.secondaryText(currentLine: line, nextLineText: coordinator.menuBarLyrics.nextText) : nil,
+            secondaryText: twoRows ? secondaryText : nil,
             mainFont: MenuBarMarqueeRenderer.mainFont(for: text, twoRows: twoRows))
-        let lyricsActive = display != nil
         // 占位态(「♪ 歌名」兜底 / 间奏 ♪)按**即将到来的那一句**定宽。
         // 判据见 `upcomingLineSlotWidth`;非占位态恒 0,对正常歌词句零影响。
         let placeholderNow = titleFallbackActive || MenuBarMarqueeRenderer.isPlaceholder(text)

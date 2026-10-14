@@ -448,6 +448,7 @@ extension LyricSecondaryLine {
         case .nextLine: return L10n.t("下一句")
         case .translation: return L10n.t("译文")
         case .romanization: return L10n.t("读音")
+        case .songInfo: return L10n.t("歌名 + 歌词")
         }
     }
 }
@@ -2099,6 +2100,9 @@ struct NotchLyricsView<Chrome: NotchChromeSource>: View {
         case .off, .nextLine: return 0.45
         case .translation: return 0.75
         case .romanization: return 0.6
+        // 菜单栏专用档,正常情况下到不了这里;给一个读得清的兜底,别让编译器把这条 switch
+        // 当成不完整而拒绝编译。
+        case .songInfo: return 0.6
         }
     }
 
